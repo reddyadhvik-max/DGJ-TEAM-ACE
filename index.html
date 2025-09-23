@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Raspberry Pi Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f0f0f0; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .top-container { display: flex; max-width: 1200px; width: 100%; gap: 20px; margin-bottom: 20px; }
+        .video-panel { flex: 2; background-color: #fff; padding: 10px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .data-panel { flex: 1; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .bottom-container { max-width: 1200px; width: 100%; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); text-align: center; }
+        h1 { text-align: center; color: #333; }
+        #video_feed { width: 100%; height: auto; border-radius: 5px; }
+        .sensor-row { padding: 10px 0; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; }
+        .sensor-row:last-child { border-bottom: none; }
+        .sensor-label { font-weight: bold; color: #555; }
+        .sensor-value { font-family: monospace; color: #007bff; font-size: 1.1em; }
+        .status-indicator { width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ccc; transition: background-color 0.3s; }
+        .red-glow { animation: red-glow-animation 1.5s infinite alternate; }
+        @keyframes red-glow-animation {
+            from { box-shadow: 0 0 5px #ff0000; }
+            to { box-shadow: 0 0 20px #ff0000; }
+        }
+        #captured-image-display { max-width: 100%; height: auto; border-radius: 5px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="top-container">
+        <div class="video-panel">
+            <h1>Live Camera Feed</h1>
+            <img id="video_feed" src="{{ url_for('video_feed') }}" alt="Live Video Feed">
+        </div>
+
+        <div class="data-panel">
+            <h1>Sensor Readings</h1>
+            <div class="sensor-row">
+                <span class="sensor-label">Motion Sensor:</span>
+                <span class="sensor-value" id="motion-data"></span>
+            </div>
+            <div class="sensor-row">
+                <span class="sensor-label">Flame Sensor:</span>
+                <span class="sensor-value" id="flame-data"></span>
+            </div>
+            <div class="sensor-row">
+                <span class="sensor-label">Tilt Sensor:</span>
+                <span class="sensor-value" id="tilt-data"></span>
+            </div>
+            <div class="sensor-row">
+                <span class="sensor-label">Temperature:</span>
+                <span class="sensor-value" id="temp-data"></span>
+            </div>
+            <div class="sensor-row">
+                <span class="sensor-label">Humidity:</span>
+                <span class="sensor-value" id="humidity-data"></span>
+            </div>
+            <div class="sensor-row">
+                <span class="sensor-label">YOLO: Human Detected?</span>
+                <div class="status-indicator" id="yolo-status"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bottom-container">
+        <h2>Captured Image</h2>
+        <img id="captured-image-display" src="" alt="Captured Image">
+    </div>
+
+    <script>
+        function updateDashboard() {
+            // Fetch and update sensor data
+            fetch('/sensor_data')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('motion-data').textContent = data.motion;
+                    document.getElementById('flame-data').textContent = data.flame;
+                    document.getElementById('tilt-data').textContent = data.tilt;
+                    document.getElementById('temp-data').textContent = data.temperature;
+                    document.getElementById('humidity-data').textContent = data.humidity;
+                    
+                    const yoloStatus = document.getElementById('yolo-status');
+                    if (data.person_detected) {
+                        yoloStatus.style.backgroundColor = 'red';
+                        yoloStatus.classList.add('red-glow');
+                    } else {
+                        yoloStatus.style.backgroundColor = 'green';
+                        yoloStatus.classList.remove('red-glow');
+                    }
+                })
+                .catch(error => console.error('Error fetching sensor data:', error));
+
+            // Update captured image
+            const capturedImageDisplay = document.getElementById('captured-image-display');
+            // Add a timestamp to the URL to force the browser to refresh the image
+            capturedImageDisplay.src = `/captured_image?t=${new Date().getTime()}`;
+        }
+
+        // Update the dashboard every 1 second
+        setInterval(updateDashboard, 1000);
+    </script>
+</body>
+</html>
